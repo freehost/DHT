@@ -57,7 +57,7 @@ $serv->on('Receive', function($serv, $fd, $from_id, $data){
     // 对数据进行解码
     $msg = Base::decode($data);
 
-    // 获取对端链接信息
+    // 获取对端链接信息, udp链接需要加上$from_id参数
     $fdinfo = $serv->connection_info($fd, $from_id);
 
     // 对接收到的数据进行类型判断

@@ -39,7 +39,7 @@ write(date('Y-m-d H:i:s', time()) . " - 服务启动...\n");
 $serv = new swoole_server('0.0.0.0', 6882, SWOOLE_PROCESS, SWOOLE_SOCK_UDP);
 $serv->set(array(
     'worker_num' => WORKER_NUM,
-    'daemonize' => false,
+    'daemonize' => true,
     'max_request' => MAX_REQUEST,
     'dispatch_mode' => 2,
     'log_file' => ABSPATH . 'error.log'
@@ -58,11 +58,7 @@ $serv->on('Receive', function($serv, $fd, $from_id, $data){
     $msg = Base::decode($data);
 
     // 获取对端链接信息
-    $fdinfo = $serv->connection_info($fd);
-
-    // 检查数据类型是否需要的类型
-    if(!isset($msg['y']))
-        return false;
+    $fdinfo = $serv->connection_info($fd, $from_id);
 
     // 对接收到的数据进行类型判断
     if($msg['y'] == 'r'){
@@ -73,6 +69,8 @@ $serv->on('Receive', function($serv, $fd, $from_id, $data){
     }elseif($msg['y'] == 'q'){
         // 如果是请求, 则执行请求判断
         request_action($msg, array($fdinfo['remote_ip'], $fdinfo['remote_port']));
+    }else{
+    	return false;
     }
 });
 $serv->on('Timer', function($interval){
@@ -188,7 +186,7 @@ function request_action($msg, $address){
  */
 function response_action($msg, $address){
     // 先检查接收到的信息是否正确
-    if(!isset($msg['r']['nodes']) || !isset($msg['r']['nodes'][1]) == 0)
+    if(!isset($msg['r']['nodes']) || !isset($msg['r']['nodes'][1]))
         return false;
 
     // 对nodes数据进行解码
@@ -227,6 +225,12 @@ function on_ping($msg, $address){
     send_response($msg, $address);
 }
 
+/**
+ * 处理find_node请求
+ * @param  array $msg     接收到的find_node请求数据
+ * @param  array $address 对端链接信息
+ * @return void
+ */
 function on_find_node($msg, $address){
     global $nid;
 
@@ -259,8 +263,6 @@ function on_find_node($msg, $address){
 function on_get_peers($msg, $address){
     global $nid;
 
-    write(date('Y-m-d H:i:s', time()) . " - 接收到get peers请求, IP={$address[0]}, Port={$address[1]}...\n");
-
     // 获取info_hash信息
     $infohash = $msg['a']['info_hash'];
     // 获取node id
@@ -292,11 +294,8 @@ function on_get_peers($msg, $address){
 function on_announce_peer($msg, $address){
     global $nid;
 
-    write(date('Y-m-d H:i:s', time()) . " - 接收到announce peer请求: IP={$address[0]}, Port={$address[1]}...\n");
-
     // 获取infohash
     $infohash = $msg['a']['info_hash'];
-    write(date('Y-m-d H:i:s', time()) . " - announce peer请求中的info_hash为: " . strtoupper(bin2hex($infohash)));
     // 获取token
     $token = $msg['a']['token'];
     // 获取node id
@@ -304,7 +303,7 @@ function on_announce_peer($msg, $address){
 
     // 验证token是否正确
     if(substr($infohash, 0, 2) == $token){
-        $txt = array(
+        /*$txt = array(
             'action' => 'announce_peer',
             'msg' => array(
                 'ip' => $address[0],
@@ -313,7 +312,8 @@ function on_announce_peer($msg, $address){
                 'infohash' => $infohash
             )
         );
-        var_dump($txt);
+        var_dump($txt);*/
+        write(date('Y-m-d H:i:s', time()) . " 获取到info_hash: " . strtoupper(bin2hex($infohash)) . "\n");
     }
 
     // 生成回复数据

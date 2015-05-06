@@ -13,4 +13,4 @@
 php dht.php
 ```
 
-作者主页：[http://shuang.ca/](http://shuang.ca/)
+作者主页：[http://shuang.ca/](http://shuang.ca/php-dht-is-ok/)
